@@ -1,0 +1,37 @@
+# File: WVDConnections_Query.kql
+# Description:
+#   KQL query to analyze Azure Virtual Desktop (WVD) user connection states,
+#   correlate errors, and checkpoints by CorrelationId for a specified user.
+#
+# Usage:
+#   Replace <USER_EMAIL> with the desired user's email address.
+#   Run this query in your Azure Log Analytics workspace or Azure Monitor logs
+#   to investigate connection start times, connection errors, and checkpoints
+#   associated with the specified user.
+#
+# Author: Oskar Dlugolecki
+# Date: 2025-10-09
+
+WVDConnections
+| where UserName == "<USER_EMAIL>"
+| project-away TenantId, SourceSystem  
+| summarize arg_max(TimeGenerated, *), 
+            StartTime = min(iff(State == "Started", TimeGenerated, datetime(null))), 
+            ConnectTime = min(iff(State == "Connected", TimeGenerated, datetime(null))) 
+  by CorrelationId  
+| join kind=leftouter (
+    WVDErrors
+    | summarize Errors = make_list(pack('Code', Code, 'CodeSymbolic', CodeSymbolic, 'Time', TimeGenerated, 'Message', Message, 'ServiceError', ServiceError, 'Source', Source)) 
+      by CorrelationId  
+) on CorrelationId
+| join kind=leftouter (
+    WVDCheckpoints
+    | summarize RawCheckpoints = make_list(pack('Time', TimeGenerated, 'Name', Name, 'Parameters', Parameters, 'Source', Source)) 
+      by CorrelationId
+    | mv-apply Checkpoint = RawCheckpoints on (
+        order by todatetime(Checkpoint['Time']) asc
+        | summarize Checkpoints = make_list(Checkpoint)
+    )
+) on CorrelationId  
+| project-away CorrelationId1, CorrelationId2  
+| order by TimeGenerated desc
