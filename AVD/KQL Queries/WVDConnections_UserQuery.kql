@@ -1,0 +1,26 @@
+# File: WVDConnections_UserQuery.kql
+# Description:
+#   KQL query to retrieve Azure Virtual Desktop (WVD) connection details, errors, and checkpoints
+#   for a specific user within the last 7 days.
+#
+# Usage:
+#   Replace the `user` variable value with the target user's email address.
+#   Run this query in your Azure Log Analytics workspace or Azure Monitor logs.
+#
+# Author: Your Name
+# Date: 2025-10-09
+
+let user = "user@example.com"; # <-- Replace with the target user's email
+WVDConnections
+| where TimeGenerated > ago(7d)
+| where UserName =~ user
+| join kind=leftouter (
+    WVDErrors
+    | summarize Errors = make_list(pack('Code', Code, 'Message', Message, 'Time', TimeGenerated)) by CorrelationId
+) on CorrelationId
+| join kind=leftouter (
+    WVDCheckpoints
+    | summarize Checkpoints = make_list(pack('Time', TimeGenerated, 'Name', Name)) by CorrelationId
+) on CorrelationId
+| project TimeGenerated, UserName, State, GatewayRegion, TransportType, UdpUse, UdpType, Errors, Checkpoints
+| order by TimeGenerated desc
