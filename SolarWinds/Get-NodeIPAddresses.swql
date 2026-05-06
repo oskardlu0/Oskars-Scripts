@@ -1,0 +1,31 @@
+-- =====================================================================
+-- SolarWinds SWQL: Node IP Address Export
+--
+-- Filename:    Get-NodeIPAddresses.swql
+-- Usage:       Paste into SolarWinds SWQL Studio and execute
+--
+-- Description:
+--   Returns the display name and IP address of every node currently
+--   monitored in SolarWinds Orion where an IP address is present.
+--   Useful as a baseline query for inventory, auditing, or as a
+--   starting point for more targeted node filtering.
+--
+-- Fields Returned:
+--   NodeName   - Display name of the node (Caption)
+--   IPAddress  - Primary IP address assigned to the node in Orion
+--
+-- Notes:
+--   - Nodes with a null IPAddress are excluded
+--   - Run in SWQL Studio or embed in a SolarWinds report/alert
+--
+-- Author:
+--   Oskar Dlugolecki
+-- =====================================================================
+
+SELECT
+    Caption   AS NodeName,
+    IPAddress
+FROM
+    Orion.Nodes
+WHERE
+    IPAddress IS NOT NULL
