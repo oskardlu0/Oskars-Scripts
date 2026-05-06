@@ -1,0 +1,49 @@
+-- =====================================================================
+-- SolarWinds SWQL: Nodes with Specific Application Monitored as Up
+--
+-- Filename:    Get-NodesWithApplicationStatus.swql
+-- Usage:       Paste into SolarWinds SWQL Studio and execute
+--
+-- Description:
+--   Returns all nodes that have a specific application template
+--   assigned and whose application component status is currently Up.
+--   Useful for confirming successful software deployment across
+--   monitored nodes or scoping alerts to confirmed-healthy instances.
+--
+-- Fields Returned:
+--   Uri         - Orion entity URI for the node
+--   DisplayName - Human-readable node name as shown in SolarWinds
+--
+-- Configuration:
+--   t.Name               - Change to match your Application Template name
+--   c.StatusDescription  - Change to 'Down', 'Warning' etc. to filter
+--                          on different component states
+--
+-- Prerequisites:
+--   - SolarWinds Application Performance Monitor (APM) module
+--   - An APM Application Template must exist with a name matching
+--     t.Name in the WHERE clause
+--   - The template should use a PowerShell component monitor script
+--     that detects whether the target application is installed
+--   - The template must be assigned to the relevant nodes before
+--     this query will return results
+--
+-- Notes:
+--   - Template name match is case-sensitive
+--   - Run in SWQL Studio or embed in a SolarWinds report/alert
+--
+-- Author:
+--   Oskar Dlugolecki
+-- =====================================================================
+
+SELECT
+    Nodes.Uri,
+    Nodes.DisplayName
+FROM
+    Orion.Nodes AS Nodes
+    JOIN Orion.APM.Application          a ON Nodes.NodeID           = a.NodeID
+    JOIN Orion.APM.ApplicationTemplate  t ON a.ApplicationTemplateID = t.ApplicationTemplateID
+    JOIN Orion.APM.Component            c ON a.ApplicationID         = c.ApplicationID
+WHERE
+    t.Name                = 'Application Installed - Notepad++'
+    AND c.StatusDescription = 'Up'
